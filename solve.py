@@ -1,7 +1,7 @@
 import string
 import decimal
 import itertools
-from collections import defaultdict
+from collections import defaultdict, Counter
 from pprint import pprint
 from constraint import *
 from tabulate import tabulate
@@ -21,14 +21,34 @@ class Task(object):
     def __repr__(self):
         return repr(self.name)
 
-class HoursConstraint(Constraint):
+
+def all_assigned(assignments, variables):
+    return [assignments.get(v, Unassigned) for v in variables].count(Unassigned) == 0
+
+class TotalHoursConstraint(Constraint):
 
     def __init__(self, minimum=13, maximum=14.75):
         self.minimum = decimal.Decimal(minimum)
         self.maximum = decimal.Decimal(maximum)
 
     def __call__(self, variables, domains, assignments, forwardcheck=False):
-        return self.minimum <= sum(t.hours for t in variables) <= self.maximum
+        if not all_assigned(assignments, variables):
+            return True
+        return self.minimum <= sum(t.hours for t in assignments) <= self.maximum
+
+class MinPerDayConstraint(Constraint):
+
+    def __call__(self, variables, domains, assignments, forwardcheck=False):
+        if not all_assigned(assignments, variables):
+            return True
+
+        c = defaultdict(list)
+        for task, choice in assignments.items():
+            c[choice].append(task.hours)
+        for day, hours in c.items():
+            if sum(hours) < decimal.Decimal(2):
+                return False
+        return True
 
 
 days = list(range(7))
@@ -57,15 +77,21 @@ groups = defaultdict(list)
 for t in tasks:
     groups[t.name].append(t)
 
+def days_apart(distance):
+    def _f(*args):
+        return sum(args) / len(args) >= distance
+    return _f
 
 problem = Problem()
 problem.addVariables(tasks, days)
 
+problem.addConstraint(InSetConstraint([1,2,3,4,5]))
 problem.addConstraint(InSetConstraint([1,3,5]), groups["Laundry"])
-problem.addConstraint(InSetConstraint([1,3,5]), groups["Wet Mop Floors"])
-problem.addConstraint(InSetConstraint([1,3,5]), groups["Clean Mirrors"])
-problem.addConstraint(InSetConstraint([1,3,5]), groups["Clean Kitchen Surfaces"])
-problem.addConstraint(HoursConstraint())
+problem.addConstraint(TotalHoursConstraint())
+problem.addConstraint(MinPerDayConstraint())
+problem.addConstraint(FunctionConstraint(days_apart(2)), groups["Laundry"])
+problem.addConstraint(FunctionConstraint(days_apart(2)), groups["Clean Kitchen Surfaces"])
+problem.addConstraint(FunctionConstraint(days_apart(3)), groups["Wet Mop Floors"])
 
 for task_group, tasks in groups.items():
     problem.addConstraint(AllDifferentConstraint(), tasks)
