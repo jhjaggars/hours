@@ -1,0 +1,25 @@
+---
+eating:
+    taskA: .75
+    taskB: .5
+    taskC: 1
+toileting:
+    taskD: 1 
+grooming:
+    taskE: 1 
+bathing:
+    taskF: 1 
+dressing:
+    taskG: 1 
+mobility:
+    taskH: 1 
+medication:
+    taskI: 1 
+mealprep:
+    taskJ: 1 
+housework:
+    taskK: 1 
+laundry:
+    taskL: 1 
+shopping:
+    taskM: 1 
