@@ -4,22 +4,22 @@ eating:
     taskB: .5
     taskC: 1
 toileting:
-    taskD: 1 
+    taskD: 1
 grooming:
-    taskE: 1 
+    taskE: 1
 bathing:
-    taskF: 1 
+    taskF: 1
 dressing:
-    taskG: 1 
+    taskG: 1
 mobility:
-    taskH: 1 
+    taskH: 1
 medication:
-    taskI: 1 
+    taskI: 1
 mealprep:
-    taskJ: 1 
+    taskJ: 1
 housework:
-    taskK: 1 
+    taskK: 1
 laundry:
-    taskL: 1 
+    taskL: 1
 shopping:
-    taskM: 1 
+    taskM: 1

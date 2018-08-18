@@ -5,6 +5,8 @@ name = "pypi"
 
 [packages]
 pyyaml = "*"
+tabulate = "*"
+python-constraint = "*"
 
 [dev-packages]
 
