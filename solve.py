@@ -78,8 +78,12 @@ for t in tasks:
     groups[t.name].append(t)
 
 def days_apart(distance):
+    """
+    Ensure that each assigned day is at least `distance` from the previous assigned day
+    """
     def _f(*args):
-        return sum(args) / len(args) >= distance
+        args = sorted(args)
+        return all(b - a >= distance for a, b in zip(args, args[1:]))
     return _f
 
 problem = Problem()
@@ -89,9 +93,7 @@ problem.addConstraint(InSetConstraint([1,2,3,4,5]))
 problem.addConstraint(InSetConstraint([1,3,5]), groups["Laundry"])
 problem.addConstraint(TotalHoursConstraint())
 problem.addConstraint(MinPerDayConstraint())
-problem.addConstraint(FunctionConstraint(days_apart(2)), groups["Laundry"])
-problem.addConstraint(FunctionConstraint(days_apart(2)), groups["Clean Kitchen Surfaces"])
-problem.addConstraint(FunctionConstraint(days_apart(3)), groups["Wet Mop Floors"])
+problem.addConstraint(FunctionConstraint(days_apart(2)), groups["Wet Mop Floors"])
 
 for task_group, tasks in groups.items():
     problem.addConstraint(AllDifferentConstraint(), tasks)
@@ -100,11 +102,16 @@ solution = problem.getSolution()
 
 rows = max(k for k, v in itertools.groupby(solution.values()))
 schedule = [[None for d in days] for row in range(rows)]
+hours_per_day = [0 for day in days]
 
 for task, day in solution.items():
+    hours_per_day[day] += task.hours
     for row in range(rows):
         if schedule[row][day] is None:
             schedule[row][day] = task
             break
 
+schedule.append(hours_per_day)
+
 print(tabulate(schedule, headers=dow, tablefmt="fancy_grid"))
+print(sum(hours_per_day))
