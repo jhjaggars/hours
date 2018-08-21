@@ -1,3 +1,4 @@
+import sys
 import string
 import decimal
 import itertools
@@ -57,21 +58,12 @@ days = list(range(7))
 dow = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 
 
-def days_apart(distance):
-    """
-    Ensure that each assigned day is at least `distance` from the previous assigned day
-    """
-    def _f(*args):
-        args = sorted(args)
-        return all(b - a >= distance for a, b in zip(args, args[1:]))
-    return _f
+def solve(fp):
+    problem = Problem()
+    day_restrictions = {}
+    groups = defaultdict(list)
+    tasks = []
 
-problem = Problem()
-day_restrictions = {}
-groups = defaultdict(list)
-
-
-def config(fp):
     doc = yaml.safe_load(fp)
     total_days = days
 
@@ -90,37 +82,40 @@ def config(fp):
             if "hours" in task:
                 t.hours = decimal.Decimal(task["hours"])
             groups[t.name].append(t)
-            yield t
+            tasks.append(t)
 
-with open("order.yaml") as fp:
-    tasks = list(config(fp))
     problem.addVariables(tasks, days)
 
-for grp, _days in day_restrictions.items():
-    problem.addConstraint(InSetConstraint(_days), groups[grp])
+    for grp, _days in day_restrictions.items():
+        problem.addConstraint(InSetConstraint(_days), groups[grp])
 
-problem.addConstraint(TotalHoursConstraint())
-problem.addConstraint(MinPerDayConstraint())
+    problem.addConstraint(TotalHoursConstraint())
+    problem.addConstraint(MinPerDayConstraint())
 
-# problem.addConstraint(FunctionConstraint(days_apart(2)), groups["Wet Mop Floors"])
+    for task_group, tasks in groups.items():
+        problem.addConstraint(AllDifferentConstraint(), tasks)
 
-for task_group, tasks in groups.items():
-    problem.addConstraint(AllDifferentConstraint(), tasks)
+    return problem.getSolution()
 
-solution = problem.getSolution()
 
-rows = max(k for k, v in itertools.groupby(solution.values()))
-schedule = [[None for d in days] for row in range(rows)]
-hours_per_day = [0 for day in days]
+def draw_table(solution):
+    rows = max(k for k, v in itertools.groupby(solution.values()))
+    schedule = [[None for d in days] for row in range(rows)]
+    hours_per_day = [0 for day in days]
 
-for task, day in solution.items():
-    hours_per_day[day] += task.hours
-    for row in range(rows):
-        if schedule[row][day] is None:
-            schedule[row][day] = task
-            break
+    for task, day in solution.items():
+        hours_per_day[day] += task.hours
+        for row in range(rows):
+            if schedule[row][day] is None:
+                schedule[row][day] = task
+                break
 
-schedule.append(hours_per_day)
+    schedule.append(hours_per_day)
 
-print(tabulate(schedule, headers=dow, tablefmt="fancy_grid"))
-print(sum(hours_per_day))
+    print(tabulate(schedule, headers=dow, tablefmt="fancy_grid"))
+    print(sum(hours_per_day))
+
+
+with open(sys.argv[1]) as fp:
+    solution = solve(fp)
+    draw_table(solution)
