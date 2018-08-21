@@ -3,8 +3,10 @@ import decimal
 import itertools
 from collections import defaultdict, Counter
 from pprint import pprint
+import yaml
 from constraint import *
 from tabulate import tabulate
+from days_parser import days_parser
 
 class Task(object):
 
@@ -19,7 +21,7 @@ class Task(object):
         return self.name
 
     def __repr__(self):
-        return repr(self.name)
+        return f"<Task {self.name}:{self.hours}>"
 
 
 def all_assigned(assignments, variables):
@@ -54,28 +56,6 @@ class MinPerDayConstraint(Constraint):
 days = list(range(7))
 dow = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 
-tasks = [
-    Task("Clean Mirrors", hours=0.5),
-    Task("Clean Mirrors", hours=0.5),
-    Task("Wet Mop Floors"),
-    Task("Wet Mop Floors"),
-    Task("Wet Mop Floors"),
-    Task("Clean Kitchen Surfaces"),
-    Task("Clean Kitchen Surfaces"),
-    Task("Clean Kitchen Surfaces"),
-    Task("Prepare Food for Next Day"),
-    Task("Prepare Food for Next Day"),
-    Task("Prepare Food for Next Day"),
-    Task("Prepare Food for Next Day"),
-    Task("Prepare Food for Next Day"),
-    Task("Laundry"),
-    Task("Laundry"),
-]
-
-groups = defaultdict(list)
-
-for t in tasks:
-    groups[t.name].append(t)
 
 def days_apart(distance):
     """
@@ -87,13 +67,42 @@ def days_apart(distance):
     return _f
 
 problem = Problem()
-problem.addVariables(tasks, days)
+day_restrictions = {}
+groups = defaultdict(list)
 
-problem.addConstraint(InSetConstraint([1,2,3,4,5]))
-problem.addConstraint(InSetConstraint([1,3,5]), groups["Laundry"])
+
+def config(fp):
+    doc = yaml.safe_load(fp)
+    total_days = days
+
+    if "days" in doc:
+        total_days = days_parser(doc["days"])
+        problem.addConstraint(InSetConstraint(total_days))
+    for task in doc["tasks"]:
+        if "days" in task:
+            task_days = days_parser(task["days"])
+            day_restrictions[task["name"]] = task_days
+        else:
+            task_days = total_days
+
+        for d in task_days:
+            t = Task(task["name"])
+            if "hours" in task:
+                t.hours = decimal.Decimal(task["hours"])
+            groups[t.name].append(t)
+            yield t
+
+with open("order.yaml") as fp:
+    tasks = list(config(fp))
+    problem.addVariables(tasks, days)
+
+for grp, _days in day_restrictions.items():
+    problem.addConstraint(InSetConstraint(_days), groups[grp])
+
 problem.addConstraint(TotalHoursConstraint())
 problem.addConstraint(MinPerDayConstraint())
-problem.addConstraint(FunctionConstraint(days_apart(2)), groups["Wet Mop Floors"])
+
+# problem.addConstraint(FunctionConstraint(days_apart(2)), groups["Wet Mop Floors"])
 
 for task_group, tasks in groups.items():
     problem.addConstraint(AllDifferentConstraint(), tasks)

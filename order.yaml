@@ -1,0 +1,10 @@
+---
+days: 'M-F'
+tasks:
+    - name: Toileting
+    - name: Meal Prep
+    - name: Clean Countertops
+      days: 'MWF'
+      hours: .5
+    - name: Wet Mop Floors
+      days: 'MF'
