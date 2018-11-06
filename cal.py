@@ -49,7 +49,7 @@ class MCalendar(TextCalendar):
 
 
 CALENDAR = MCalendar()
-days = [d for d in CALENDAR.itermonthdates(YEAR, MONTH) if d.month == 11]
+days = [d for d in CALENDAR.itermonthdates(YEAR, MONTH) if d.month == MONTH]
 
 
 def all_assigned(assignments, variables):
